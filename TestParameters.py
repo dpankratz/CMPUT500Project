@@ -16,9 +16,6 @@ class TestParameters:
         self.dims = dims
         self.dtype = dtype
 
-    def get_measure_option(self):   
-        return autotvm.LocalRunner(number = self.variance_resistance_runs)
-
     def numpy_dtype(self):
         if(self.dtype == "float32"):
             return np.float32
@@ -31,3 +28,4 @@ if(__name__ == "__main__"):
     assert(type(t.get_measure_option()) == tvm.autotvm.measure.measure_methods.LocalRunner)
     assert(t.numpy_dtype() == np.float32)
     assert(t.get_tvm_args() == (512,512,512,'float32'))
+    assert(t.trial_runs == 20)

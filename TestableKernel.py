@@ -18,13 +18,16 @@ class TestableKernel:
         self.input_generator = input_generator
         self.name = name
 
-    def logfile_name(self,kernel):
+    def kernel_name(self,kernel):
         if(kernel == self.auto_autokernel):
-            return self.name + "_auto.log"
+            return self.name + "_auto"
         elif(kernel == self.manual_autokernel):
-            return self.name + "_manual.log"
+            return self.name + "_manual"
 
-    def get_tunable_kernels():
+    def logfile_name(self,kernel):
+        return self.kernel_name(kernel) + ".log"
+
+    def get_tunable_kernels(self,):
         return [self.auto_autokernel,self.manual_autokernel]
         
 
@@ -32,9 +35,9 @@ if __name__ == "__main__":
     t = TestableKernel(auto_autokernel = vectoradd_auto,
         manual_autokernel =vectoradd_manual,
         numpy_kernel = vectoradd_numpy,
-        input_generator = vectoradd_input_generator
+        input_generator = vectoradd_input_generator,
         name ="vectoradd")
-    print(t.logfile_name(t.auto_autokernel))
-    print(t.logfile_name(t.manual_autokernel))
-    
+    assert(t.logfile_name(t.auto_autokernel) == "vectoradd_auto.log")
+    assert(t.logfile_name(t.manual_autokernel) == "vectoradd_manual.log")
+    assert(t.get_tunable_kernels() == [vectoradd_auto,vectoradd_manual])
     
