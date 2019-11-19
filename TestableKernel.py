@@ -8,6 +8,7 @@ import tvm
 # the module is called `autotvm`
 from tvm import autotvm
 from VectorAdd import vectoradd_auto,vectoradd_manual,vectoradd_numpy,vectoradd_input_generator
+from GEMM import matmul_auto,matmul_manual,matmul_numpy,matmul_input_generator
 
 class TestableKernel:
 
@@ -30,6 +31,21 @@ class TestableKernel:
     def get_tunable_kernels(self,):
         return [self.auto_autokernel,self.manual_autokernel]
         
+
+
+
+testing_kernels = {'VectorAdd.py' : 
+    TestableKernel(auto_autokernel = vectoradd_auto,
+        manual_autokernel =vectoradd_manual,
+        numpy_kernel = vectoradd_numpy,
+        input_generator = vectoradd_input_generator,
+        name ="vectoradd"),
+        'GEMM.py':
+    TestableKernel(auto_autokernel = matmul_auto,
+        manual_autokernel =matmul_manual,
+        numpy_kernel = matmul_numpy,
+        input_generator = matmul_input_generator,
+        name ="matmul")}
 
 if __name__ == "__main__":
     t = TestableKernel(auto_autokernel = vectoradd_auto,

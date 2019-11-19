@@ -76,60 +76,70 @@ def matmul_manual(N, L, M, dtype):
 
     return s, [A, B, C]
 
+def matmul_numpy(a_np,b_np):
+    c_np = a_np.dot(b_np)
+    return c_np
 
-################################################################
-# Begin tuning
-# ^^^^^^^^^^^^
-# Here we continue our matrix multiplication example.
-# First we should create a tuning task.
-# We can also inspect the initialized search space.
-# In this case, for a 512x512 square matrix multiplication
+def matmul_input_generator(N,L,M,dtype):
+    a_np = np.random.uniform(size=(N, L)).astype(np.float32)
+    b_np = np.random.uniform(size=(L, M)).astype(np.float32)
+    return [a_np,b_np]
 
-N, L, M = 512, 512, 512
-task = autotvm.task.create(matmul_manual, args=(N, L, M, 'float32'), target='llvm')
 
-################################################################
-# Then we need to define how to measure the generated code and pick a tuner.
-#
-# We will log the tuning results into a log file. This file can be
-# used to get the best config later.
+if __name__ == "__main__":
+    ################################################################
+    # Begin tuning
+    # ^^^^^^^^^^^^
+    # Here we continue our matrix multiplication example.
+    # First we should create a tuning task.
+    # We can also inspect the initialized search space.
+    # In this case, for a 512x512 square matrix multiplication
 
-# logging config (for printing tuning log to the screen)
-logging.getLogger('autotvm').setLevel(logging.DEBUG)
-logging.getLogger('autotvm').addHandler(logging.StreamHandler(sys.stdout))
+    N, L, M = 512, 512, 512
+    task = autotvm.task.create(matmul_manual, args=(N, L, M, 'float32'), target='llvm')
 
-# There are two steps for measuring a config: build and run.
-# By default, we use all CPU cores to compile program. Then measure them sequentially.
-# We measure k times and take average to reduce variance.
-measure_option = autotvm.measure_option(
-    builder='local',
-    runner=autotvm.LocalRunner(number=5))
+    ################################################################
+    # Then we need to define how to measure the generated code and pick a tuner.
+    #
+    # We will log the tuning results into a log file. This file can be
+    # used to get the best config later.
 
-# begin tuning, log records to file `GEMM.log`
-tuner = autotvm.tuner.RandomTuner(task)
-tuner.tune(n_trial=20,
-           measure_option=measure_option,
-           callbacks=[autotvm.callback.log_to_file('GEMM.log')])
+    # logging config (for printing tuning log to the screen)
+    logging.getLogger('autotvm').setLevel(logging.DEBUG)
+    logging.getLogger('autotvm').addHandler(logging.StreamHandler(sys.stdout))
 
-#########################################################################
-# Finally we apply history best from the cache file and check its correctness.
-# We can call the function :code:`matmul` directly under the
-# :any:`autotvm.apply_history_best` context. When we call this function,
-# it will query the dispatch context with its argument and get the best config
-# with the same argument.
+    # There are two steps for measuring a config: build and run.
+    # By default, we use all CPU cores to compile program. Then measure them sequentially.
+    # We measure k times and take average to reduce variance.
+    measure_option = autotvm.measure_option(
+        builder='local',
+        runner=autotvm.LocalRunner(number=5))
 
-# apply history best from log file
-with autotvm.apply_history_best('GEMM.log'):
-    with tvm.target.create("llvm"):
-        s, arg_bufs = matmul_manual(N, L, M, 'float32')
-        func = tvm.build(s, arg_bufs)
+    # begin tuning, log records to file `GEMM.log`
+    tuner = autotvm.tuner.RandomTuner(task)
+    tuner.tune(n_trial=20,
+               measure_option=measure_option,
+               callbacks=[autotvm.callback.log_to_file('GEMM.log')])
 
-# check correctness
-a_np = np.random.uniform(size=(N, L)).astype(np.float32)
-b_np = np.random.uniform(size=(L, M)).astype(np.float32)
-c_np = a_np.dot(b_np)
+    #########################################################################
+    # Finally we apply history best from the cache file and check its correctness.
+    # We can call the function :code:`matmul` directly under the
+    # :any:`autotvm.apply_history_best` context. When we call this function,
+    # it will query the dispatch context with its argument and get the best config
+    # with the same argument.
 
-c_tvm = tvm.nd.empty(c_np.shape)
-func(tvm.nd.array(a_np), tvm.nd.array(b_np), c_tvm)
+    # apply history best from log file
+    with autotvm.apply_history_best('GEMM.log'):
+        with tvm.target.create("llvm"):
+            s, arg_bufs = matmul_manual(N, L, M, 'float32')
+            func = tvm.build(s, arg_bufs)
 
-tvm.testing.assert_allclose(c_np, c_tvm.asnumpy(), rtol=1e-2)
+    # check correctness
+    a_np = np.random.uniform(size=(N, L)).astype(np.float32)
+    b_np = np.random.uniform(size=(L, M)).astype(np.float32)
+    c_np = a_np.dot(b_np)
+
+    c_tvm = tvm.nd.empty(c_np.shape)
+    func(tvm.nd.array(a_np), tvm.nd.array(b_np), c_tvm)
+
+    tvm.testing.assert_allclose(c_np, c_tvm.asnumpy(), rtol=1e-2)
