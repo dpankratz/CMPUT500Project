@@ -7,13 +7,13 @@ program_run_group = test_suite_argparser.add_mutually_exclusive_group()
 program_run_group.add_argument('--T',dest='IsTestRun', action='store_const',
                     const=True, default=False,
                     help='Run a test run of the suite by tuning VectorAdd.')
-program_run_group.add_argument('--B',dest='HistoryRunTargets', metavar='XXXX.py',type=str,nargs='+', default=None,
+program_run_group.add_argument('--History',dest='HistoryRunTargets', metavar='XXXX.py',type=str,nargs='+', default=None,
                     help='Get the history of a given kernel without tuning. Usage is --B GEMM.py.')
-program_run_group.add_argument('--C',dest='CorrectnessRunTargets', metavar='XXXX.py',nargs='+', default=None,
+program_run_group.add_argument('--Verification',dest='CorrectnessRunTargets', metavar='XXXX.py',nargs='+', default=None,
                     help='Get the correctness of the best tuned kernel in the history. Usage is --C GEMM.py.')
-program_run_group.add_argument('--F',dest='FullRunTargets', metavar='XXXX.py',nargs='+', default=None,
+program_run_group.add_argument('--Full',dest='FullRunTargets', metavar='XXXX.py',nargs='+', default=None,
                     help='Perform a full run of the suite to create project results')
-program_run_group.add_argument('--D',dest='DeleteLogsTargets', metavar='XXXX.py',nargs='+', default=None,
+program_run_group.add_argument('--Delete',dest='DeleteLogsTargets', metavar='XXXX.py',nargs='+', default=None,
                     help='Delete the logs of previous runs.')
 
 #These parameters are common to all types of program runs
@@ -28,8 +28,9 @@ test_suite_argparser.add_argument('--dtype',dest='dtype',metavar='TYPE',type=str
 
 
 def build_parameters_from_args(args):
-
-    dims = [1,512] if args.dims == None else args.dims
+    if args.dims == None:
+        return TestParameters(variance_resistance_runs = args.variance_resistance_runs, trial_runs = args.trial_runs,dims = None,dtype = args.dtype)
+    dims = args.dims
 
     parameters = []
     kernel_dims = []

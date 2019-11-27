@@ -6,7 +6,7 @@ import numpy as np
 import tvm
 from tvm import autotvm
 
-from Passes import enable_autotune
+import Passes
 
 @autotvm.template
 def vectoradd_auto(K,dtype):
@@ -16,10 +16,24 @@ def vectoradd_auto(K,dtype):
     s = tvm.create_schedule(C.op)
 
     #### ADDED AUTO AUTOTUNING ####
-    enable_autotune(s,[C],autotvm.get_config())
+    Passes.enable_autotune(s,[C],autotvm.get_config(),mode=Passes.NONNAIVE)
     ###############################
 
     return s, [A, B, C]
+
+@autotvm.template
+def vectoradd_naive(K,dtype):
+    A = tvm.placeholder((K,), name='A', dtype=dtype)
+    B = tvm.placeholder((K,), name='B', dtype=dtype)
+    C = tvm.compute(A.shape, lambda i: A[i] + B[i], name='C')
+    s = tvm.create_schedule(C.op)
+
+    #### ADDED AUTO AUTOTUNING ####
+    Passes.enable_autotune(s,[C],autotvm.get_config(),mode=Passes.NAIVE)
+    ###############################
+
+    return s, [A, B, C]
+
 
 @autotvm.template
 def vectoradd_manual(K,dtype):
@@ -45,6 +59,9 @@ def vectoradd_input_generator(K,dtype):
     a_np = np.random.uniform(size=(K)).astype(dtype)
     b_np = np.random.uniform(size=(K)).astype(dtype)
     return [a_np,b_np]
+
+def vectoradd_default_args():
+    return (65536,'float32')
 
 if __name__ == "__main__":
 

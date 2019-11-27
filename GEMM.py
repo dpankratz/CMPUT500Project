@@ -30,7 +30,7 @@ import tvm
 # the module is called `autotvm`
 from tvm import autotvm
 
-from Passes import enable_autotune
+import Passes
 
 @autotvm.template
 def matmul_auto(N, L, M, dtype):
@@ -42,7 +42,22 @@ def matmul_auto(N, L, M, dtype):
     s = tvm.create_schedule(C.op)
 
     #### ADDED AUTO AUTOTUNING ####
-    enable_autotune(s,[C],autotvm.get_config())
+    Passes.enable_autotune(s,[C],autotvm.get_config(),mode=Passes.NONNAIVE)
+    ###############################
+
+    return s, [A, B, C]
+
+@autotvm.template
+def matmul_naive(N, L, M, dtype):
+    A = tvm.placeholder((N, L), name='A', dtype=dtype)
+    B = tvm.placeholder((L, M), name='B', dtype=dtype)
+
+    k = tvm.reduce_axis((0, L), name='k')
+    C = tvm.compute((N, M), lambda i, j: tvm.sum(A[i, k] * B[k, j], axis=k), name='C')
+    s = tvm.create_schedule(C.op)
+
+    #### ADDED AUTO AUTOTUNING ####
+    Passes.enable_autotune(s,[C],autotvm.get_config(),mode=Passes.NAIVE)
     ###############################
 
     return s, [A, B, C]
@@ -84,6 +99,9 @@ def matmul_input_generator(N,L,M,dtype):
     a_np = np.random.uniform(size=(N, L)).astype(np.float32)
     b_np = np.random.uniform(size=(L, M)).astype(np.float32)
     return [a_np,b_np]
+
+def matmul_default_args():
+    return (512,512,512,'float32')
 
 
 if __name__ == "__main__":
