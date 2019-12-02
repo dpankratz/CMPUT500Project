@@ -38,7 +38,7 @@ import Passes
 #    input_shape = (batch_size, 3, 224, 224)
 #    output_shape = (batch_size, 1000)
 @autotvm.template
-def conv_auto(batch, in_channel, in_size, num_filter, kernel):
+def conv_moderate(batch, in_channel, in_size, num_filter, kernel):
     global B
     in_height = in_width = in_size
 
@@ -73,6 +73,25 @@ def conv_naive(batch, in_channel, in_size, num_filter, kernel):
 
     return s,[A,W,B]
 
+
+@autotvm.template
+def conv_conservative(batch, in_channel, in_size, num_filter, kernel):
+    global B
+    in_height = in_width = in_size
+
+    A = tvm.placeholder(_a_shape(batch,in_channel,in_size), name='A')
+    W = tvm.placeholder(_w_shape(kernel,in_channel,num_filter), name='W')
+    B = topi.nn.conv2d(A, W, 3, 1, 1, layout='NHWC', out_dtype="int32")
+    s = topi.generic.schedule_conv2d_nhwc_pack([B])
+    s = tvm.create_schedule(B.op)
+
+    #### ADDED AUTO AUTOTUNING ####
+    Passes.enable_autotune(s,[B],autotvm.get_config(),mode=Passes.CONSERVATIVE)
+    ###############################
+
+    dtype = A.dtype
+
+    return s,[A,W,B]
 
 def conv_numpy(a_np,w_np):
     dw_np = topi.testing.dilate_python(w_np, (1, 1, 1, 1))

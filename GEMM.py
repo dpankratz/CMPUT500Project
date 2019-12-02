@@ -33,7 +33,7 @@ from tvm import autotvm
 import Passes
 
 @autotvm.template
-def matmul_auto(N, L, M, dtype):
+def matmul_moderate(N, L, M, dtype):
     A = tvm.placeholder((N, L), name='A', dtype=dtype)
     B = tvm.placeholder((L, M), name='B', dtype=dtype)
 
@@ -58,6 +58,21 @@ def matmul_naive(N, L, M, dtype):
 
     #### ADDED AUTO AUTOTUNING ####
     Passes.enable_autotune(s,[C],autotvm.get_config(),mode=Passes.NAIVE)
+    ###############################
+
+    return s, [A, B, C]
+
+@autotvm.template
+def matmul_conservative(N, L, M, dtype):
+    A = tvm.placeholder((N, L), name='A', dtype=dtype)
+    B = tvm.placeholder((L, M), name='B', dtype=dtype)
+
+    k = tvm.reduce_axis((0, L), name='k')
+    C = tvm.compute((N, M), lambda i, j: tvm.sum(A[i, k] * B[k, j], axis=k), name='C')
+    s = tvm.create_schedule(C.op)
+
+    #### ADDED AUTO AUTOTUNING ####
+    Passes.enable_autotune(s,[C],autotvm.get_config(),mode=Passes.CONSERVATIVE)
     ###############################
 
     return s, [A, B, C]

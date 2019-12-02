@@ -15,6 +15,8 @@ program_run_group.add_argument('--Full',dest='FullRunTargets', metavar='XXXX.py'
                     help='Perform a full run of the suite to create project results')
 program_run_group.add_argument('--Delete',dest='DeleteLogsTargets', metavar='XXXX.py',nargs='+', default=None,
                     help='Delete the logs of previous runs.')
+program_run_group.add_argument('--Space', dest='SearchSpaceTargets',metavar='XXXX.py',nargs='+',default=None,
+					help='Print the search space for the kernels of a target.')
 
 #These parameters are common to all types of program runs
 test_suite_argparser.add_argument('--trials',dest='trial_runs',metavar='N',type=int,default=20,

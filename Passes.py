@@ -12,6 +12,8 @@ import math
 
 NAIVE = 0
 NONNAIVE = 1
+CONSERVATIVE = 2
+EXPERIMENTAL = 3
 
 PRINT = 0
 
@@ -128,9 +130,10 @@ def reordering_pass(schedule,computes,config,tiled_axes_dict = None):
 def enable_autotune(schedule,computes,config,mode=NAIVE):
     if PRINT:
         print("Begin creating space")
-    #TODO: try tuning without tiles first then with tiles.
     if(mode == NONNAIVE):
         fused_passes(schedule,computes,config)
+    elif(mode == CONSERVATIVE):
+        conservative_pass(schedule,computes,config)
     elif(mode == NAIVE):
         tiled_axes_dict = tiling_pass(schedule,computes,config)
         reordering_pass(schedule,computes,config,tiled_axes_dict)
@@ -161,10 +164,65 @@ def fused_passes(schedule,computes,config):
             index += 1
         stage.reorder(*tiled_outer_axis,*stage.op.reduce_axis,*tiled_inner_axis)
 
-        config.define_reorder("reorder",tiled_inner_axis,policy='all')
+        config.define_reorder("reorder", ([] if len(stage.op.reduce_axis) == 0 else list(stage.op.reduce_axis[-2:])) + tiled_inner_axis,policy='all')
         config["reorder"].apply(schedule,compute,tiled_inner_axis)
         config.define_annotate("annotate",tiled_inner_axis,policy='try_unroll_vec')
         config['annotate'].apply(schedule,compute,tiled_inner_axis)
+
+def experimental_pass(schedule,computes,config):
+    for compute in computes:
+        if PRINT:
+            print("Found compute in experimental pass")
+        stage = schedule[compute]
+        axes = list(stage.op.axis)[max(0,len(stage.op.axis)-3):] #+ list(stage.op.reduce_axis[-1:]) #limit the 
+        
+        tiled_inner_axis = []
+        tiled_outer_axis = []
+        index = 0
+        for axis in axes:
+            if PRINT:
+                print("Found axis in compute in tiling pass:",axis)
+            extent = int(axis.dom.extent)
+            split_factor = splitting_outputs(int(extent))
+            config.define_split("tile_" + str(index),axis,num_outputs = split_factor,policy='verbose',filter=lambda x: check_factors(x.size,extent))
+            new_axes = config["tile_" + str(index)].apply(schedule,compute,axis)
+            midpoint = math.ceil(len(new_axes)/2)
+            tiled_inner_axis += new_axes[0:midpoint]
+            tiled_outer_axis += new_axes[midpoint:len(new_axes)]
+            index += 1
+        stage.reorder(*tiled_inner_axis,*stage.op.reduce_axis,*tiled_outer_axis)
+
+        config.define_reorder("reorder",list(stage.op.reduce_axis[-2:]) + tiled_outer_axis,policy='all')
+        config["reorder"].apply(schedule,compute,tiled_inner_axis)
+        config.define_annotate("annotate",tiled_inner_axis,policy='try_unroll_vec')
+        config['annotate'].apply(schedule,compute,tiled_inner_axis)
+
+def conservative_pass(schedule,computes,config):
+    for compute in computes:
+        if PRINT:
+            print("Found compute in conservative pass")
+        stage = schedule[compute]
+        axes = list(stage.op.axis)[max(0,len(stage.op.axis)-2):] #+ list(stage.op.reduce_axis[-1:]) #limit the 
+        
+        tiled_inner_axis = []
+        tiled_outer_axis = []
+        index = 0
+        for axis in axes:
+            if PRINT:
+                print("Found axis in compute in tiling pass:",axis)
+            extent = int(axis.dom.extent)
+            split_factor = splitting_outputs(int(extent))
+            config.define_split("tile_" + str(index),axis,num_outputs = split_factor,policy='verbose',filter=lambda x: check_factors(x.size,extent,1,64))
+            new_axes = config["tile_" + str(index)].apply(schedule,compute,axis)
+            midpoint = math.ceil(len(new_axes)/3)
+            tiled_inner_axis += new_axes[0:midpoint]
+            tiled_outer_axis += new_axes[midpoint:len(new_axes)]
+            index += 1
+        stage.reorder(*tiled_outer_axis,*stage.op.reduce_axis,*tiled_inner_axis)
+
+        config.define_reorder("reorder", list(stage.op.reduce_axis) + tiled_outer_axis,policy='all')
+        config["reorder"].apply(schedule,compute,tiled_inner_axis)
+
 
 '''x`
  * ((
