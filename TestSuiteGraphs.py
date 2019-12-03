@@ -11,6 +11,7 @@ SHOW_PLOTS = 0
 
 def plot_gflops(data,annotated_points,labels,save_name):
 	
+	plt.clf()
 	print(annotated_points)
 	for array in data:
 		plt.plot(array)
