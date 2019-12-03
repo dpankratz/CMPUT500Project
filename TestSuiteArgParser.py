@@ -17,6 +17,8 @@ program_run_group.add_argument('--Delete',dest='DeleteLogsTargets', metavar='XXX
                     help='Delete the logs of previous runs.')
 program_run_group.add_argument('--Space', dest='SearchSpaceTargets',metavar='XXXX.py',nargs='+',default=None,
 					help='Print the search space for the kernels of a target.')
+program_run_group.add_argument('--Tune', dest='TuningTargets',metavar='XXXX.py',nargs='+',default=None,
+					help='Tune the kernels of a target.')
 
 #These parameters are common to all types of program runs
 test_suite_argparser.add_argument('--trials',dest='trial_runs',metavar='N',type=int,default=20,

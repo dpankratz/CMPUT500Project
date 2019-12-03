@@ -8,7 +8,23 @@ from tvm import autotvm
 
 
 @autotvm.template
-def upsample_auto(batch,in_channel,in_height,in_width):
+def upsample_conservative(batch,in_channel,in_height,in_width):
+    A = tvm.placeholder((batch, in_channel, in_height, in_width), name='A')
+    out_shape = (batch, in_channel, in_height*3, in_width*3)
+    B = topi.nn.upsampling(A, 3, layout='NCHW', method='nearest_neighbor', align_corners=False)
+    with tvm.target.create('llvm'):
+        s = tvm.create_schedule(B.op)
+
+
+    cfg = autotvm.get_config()    
+    cfg.add_flop(32)
+    Passes.enable_autotune(s,[B],cfg,mode=Passes.CONSERVATIVE)
+
+
+    return s,[A,B]
+
+@autotvm.template
+def upsample_naive(batch,in_channel,in_height,in_width):
     A = tvm.placeholder((batch, in_channel, in_height, in_width), name='A')
     out_shape = (batch, in_channel, in_height*3, in_width*3)
     B = topi.nn.upsampling(A, 3, layout='NCHW', method='nearest_neighbor', align_corners=False)
@@ -17,7 +33,25 @@ def upsample_auto(batch,in_channel,in_height,in_width):
 
 
     cfg = autotvm.get_config()
-    Passes.enable_autotune(s,[B],cfg,mode=Passes.CONSERVATIVE)
+    cfg.add_flop(32)
+    Passes.enable_autotune(s,[B],cfg,mode=Passes.NAIVE)
+
+
+    return s,[A,B]
+
+
+@autotvm.template
+def upsample_moderate(batch,in_channel,in_height,in_width):
+    A = tvm.placeholder((batch, in_channel, in_height, in_width), name='A')
+    out_shape = (batch, in_channel, in_height*3, in_width*3)
+    B = topi.nn.upsampling(A, 3, layout='NCHW', method='nearest_neighbor', align_corners=False)
+    with tvm.target.create('llvm'):
+        s = tvm.create_schedule(B.op)
+
+
+    cfg = autotvm.get_config()
+    cfg.add_flop(32)
+    Passes.enable_autotune(s,[B],cfg,mode=Passes.NONNAIVE)
 
 
     return s,[A,B]
@@ -28,7 +62,7 @@ def upsample_auto(batch,in_channel,in_height,in_width):
 
 def upsample_input_generator(batch,in_channel,in_height,in_width):
     a_np = np.random.uniform(size=(batch, in_channel, in_height, in_width)).astype('float32')
-    return a_np
+    return [a_np]
 
 def upsample_numpy(a_np):
     b_np = topi.testing.upsampling_python(a_np, (3, 3), 'NCHW')

@@ -9,7 +9,7 @@ from topi.util import get_const_tuple
 
 
 @autotvm.template
-def relu_auto(m,n):
+def relu_conservative(m,n):
     A = tvm.placeholder((m, n), name='A')
     B = topi.nn.relu(A)
     with tvm.target.create('llvm'):
@@ -19,6 +19,36 @@ def relu_auto(m,n):
     cfg = autotvm.get_config()
 
     Passes.enable_autotune(s,[B],cfg,mode=Passes.CONSERVATIVE)
+
+
+    return s,[A,B]
+
+@autotvm.template
+def relu_moderate(m,n):
+    A = tvm.placeholder((m, n), name='A')
+    B = topi.nn.relu(A)
+    with tvm.target.create('llvm'):
+        s = tvm.create_schedule(B.op)
+
+
+    cfg = autotvm.get_config()
+
+    Passes.enable_autotune(s,[B],cfg,mode=Passes.NONNAIVE)
+
+
+    return s,[A,B]
+
+@autotvm.template
+def relu_naive(m,n):
+    A = tvm.placeholder((m, n), name='A')
+    B = topi.nn.relu(A)
+    with tvm.target.create('llvm'):
+        s = tvm.create_schedule(B.op)
+
+
+    cfg = autotvm.get_config()
+
+    Passes.enable_autotune(s,[B],cfg,mode=Passes.NAIVE)
 
 
     return s,[A,B]

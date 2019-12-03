@@ -14,7 +14,7 @@ import Upsample
 import softmax
 import resize
 import relu
-import conv_pack_8bit
+import reorg
 
 class TestableKernel:
 
@@ -46,38 +46,33 @@ testing_kernels = {'VectorAdd.py' :
         numpy_kernel = conv_numpy,
         input_generator = conv_input_generator,
         default_args= conv_default_args,
-        name ="conv"),
-    'softmax.py':TestableKernel(autokernels = [softmax.softmax_auto],
+        name ="conv")}
+
+results_kernels = {    'softmax.py':TestableKernel(autokernels = [softmax.softmax_naive,softmax.softmax_moderate,  softmax.softmax_conservative],
         numpy_kernel = softmax.softmax_numpy,
         input_generator = softmax.softmax_input_generator,
         default_args = softmax.softmax_default_args,
         name = "softmax"),
-    'resize.py' : TestableKernel(autokernels = [resize.resize_auto],
+    'resize.py' : TestableKernel(autokernels = [resize.resize_naive,resize.resize_moderate,  resize.resize_conservative],
         numpy_kernel = resize.resize_numpy,
         input_generator = resize.resize_input_generator,
         default_args = resize.resize_default_args,
         name = "resize"),
     'Upsample.py' :
-    TestableKernel(autokernels = [Upsample.upsample_auto],
+    TestableKernel(autokernels = [ Upsample.upsample_naive, Upsample.upsample_moderate, Upsample.upsample_conservative],
         numpy_kernel = Upsample.upsample_numpy,
         input_generator = Upsample.upsample_input_generator,
         default_args = Upsample.upsample_default_args,
         name = "upsample"),
     'relu.py' :
-    TestableKernel(autokernels = [relu.relu_auto],
+    TestableKernel(autokernels = [relu.relu_naive, relu.relu_moderate,  relu.relu_conservative],
         numpy_kernel = relu.relu_numpy,
         input_generator = relu.relu_input_generator,
         default_args = relu.relu_default_args,
         name = "relu"),
-    'conv_pack.py':
-        TestableKernel(autokernels = [conv_pack.conv_pack_auto],
-        numpy_kernel = conv_pack.conv_pack_numpy,
-        input_generator = conv_pack.conv_pack_input_generator,
-        default_args = conv_pack.conv_pack_default_args,
-        name = "conv_pack")}
-
-results_kernels = {'softmax.py':TestableKernel(autokernels = [softmax.softmax_auto],
-        numpy_kernel = softmax.softmax_numpy,
-        input_generator = softmax.softmax_input_generator,
-        default_args = softmax.softmax_default_args,
-        name = "softmax"),}
+    'reorg.py':
+        TestableKernel(autokernels = [reorg.reorg_naive, reorg.reorg_moderate,  reorg.reorg_conservative],
+        numpy_kernel = reorg.reorg_numpy,
+        input_generator = reorg.reorg_input_generator,
+        default_args = reorg.reorg_default_args,
+        name = "reorg")}

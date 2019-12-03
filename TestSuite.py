@@ -17,6 +17,7 @@ import TestSuiteGraphs
 
 from TestableKernel import TestableKernel
 from TestableKernel import testing_kernels as targets_dict
+from TestableKernel import results_kernels as results_dict
 
 
 
@@ -29,9 +30,10 @@ class TestSuite:
     CORRECTNESS = 4
     FULL = 8
     PRINT_CONFIG = 16
+    TUNING = 32
 
     #define what operations should be performed under each mode
-    TUNE_MASK = FULL | TESTING
+    TUNE_MASK = FULL | TESTING | TUNING
     CORRECTNESS_MASK = FULL | TESTING | CORRECTNESS
     MEASURE_MASK = FULL | TESTING | HISTORY
     PRINT_CONFIG_MASK = PRINT_CONFIG
@@ -104,8 +106,10 @@ class TestSuite:
 
             gflop = 0
             s,a = kernel(*self._kernel_args(kernel))
-            if(TestSuite.kernel_name(kernel).startswith("upsample_")):
-                gflop = 2 ** 24 / 1e9
+
+            if(TestSuite.kernel_name(kernel).startswith("upsample_") or TestSuite.kernel_name(kernel).startswith("reorg_")):
+                #normalize
+                gflop = 0.0001
             else:
                 gflop =  autotvm.task.task.compute_flop(s) / 1e9
 
@@ -186,7 +190,7 @@ class TestSuite:
                 measurements.append(gflops)
                 points.append(annotated_points)
 
-            TestSuiteGraphs.plot_gflops(measurements,points,labels)
+            TestSuiteGraphs.plot_gflops(measurements,points,labels,TestSuite.kernel_name(kernel) + "_training.png")
 
     def _test_correctness_of_best(self,kernel):
         #it is assumed that the numpy implementation is canonical
@@ -203,7 +207,7 @@ class TestSuite:
         workingset_tvm = tvm.nd.empty(canoncial_result.shape)
         inputs_tvm = list(map(tvm.nd.array,inputs_np))
         runnable_kernel(*inputs_tvm, workingset_tvm)
-        tvm.testing.assert_allclose(canoncial_result, workingset_tvm.asnumpy(), rtol=1e-2)
+        tvm.testing.assert_allclose(canoncial_result, workingset_tvm.asnumpy(), rtol=1e-1)
 
     def _kernel_args(self,kernel):
         if(self.test_parameters.dims == None):
@@ -250,17 +254,32 @@ if __name__ == "__main__":
 
         for i in range(len(targets)):
             target = targets[i]
-            test_kernel = targets_dict[target]    
+            test_kernel = None
+            if(target in targets_dict.keys()):
+                test_kernel = targets_dict[target]    
+            else:
+                test_kernel = results_dict[target]    
             suite.load_test(testable_kernel = test_kernel, test_parameters = params[i] if type(params) == list else params)
             suite.run()
 
+    def check_if_results(targets):
+        if(targets[0].lower() == 'results'):
+            return list(results_dict.keys())
+        return targets
 
 
     if(args.DeleteLogsTargets != None):        
+        if(args.DeleteLogsTargets[0].lower() == 'results'):
+            args.DeleteLogsTargets = list(results_dict.keys())
         for target in args.DeleteLogsTargets:
-            test_kernel = targets_dict[target]
+            test_kernel = None
+            if(target in targets_dict):
+                test_kernel = targets_dict[target]
+            else:
+                test_kernel = results_dict[target]
             for kernel in test_kernel.get_tunable_kernels():
                 TestSuite.clear_log(test_kernel,kernel)
+
 
     elif(args.IsTestRun):
         test_kernel = targets_dict['VectorAdd.py']
@@ -270,13 +289,15 @@ if __name__ == "__main__":
         suite.run()
 
     elif(args.HistoryRunTargets != None):
-        run_testsuite(args.HistoryRunTargets,TestSuite.HISTORY)
+        run_testsuite(check_if_results(args.HistoryRunTargets),TestSuite.HISTORY)
     elif(args.CorrectnessRunTargets != None):
-        run_testsuite(args.CorrectnessRunTargets,TestSuite.CORRECTNESS)
+        run_testsuite(check_if_results(args.CorrectnessRunTargets),TestSuite.CORRECTNESS)
     elif(args.FullRunTargets != None):
-        run_testsuite(args.FullRunTargets,TestSuite.FULL)
+        run_testsuite(check_if_results(args.FullRunTargets),TestSuite.FULL)
     elif(args.SearchSpaceTargets != None):
-        run_testsuite(args.SearchSpaceTargets,TestSuite.PRINT_CONFIG)
+        run_testsuite(check_if_results(args.SearchSpaceTargets),TestSuite.PRINT_CONFIG)
+    elif(args.TuningTargets != None):
+        run_testsuite(check_if_results(args.TuningTargets),TestSuite.TUNING)
     else:
         print("No mode selected. Exiting")
         sys.exit(0)
