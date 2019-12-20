@@ -1,0 +1,7 @@
+len=9000
+tile_0:[[-1, 1], [-1, 2], [-1, 4]]
+tile_1:[[-1, 1], [-1, 2], [-1, 4], [-1, 8], [-1, 16]]
+tile_2:[[-1, 1], [-1, 2], [-1, 4], [-1, 8], [-1, 16]]
+reorder:[(0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0)]
+annotate:[['none', 'none', 'none'], ['none', 'none', 'unroll'], ['none', 'none', 'vec'], ['none', 'unroll', 'none'], ['none', 'unroll', 'unroll'], ['none', 'unroll', 'vec'], ['none', 'vec', 'none'], ['none', 'vec', 'unroll'], ['unroll', 'none', 'none'], ['unroll', 'none', 'unroll'], ['unroll', 'none', 'vec'], ['unroll', 'unroll', 'none'], ['unroll', 'unroll', 'unroll'], ['unroll', 'unroll', 'vec'], ['unroll', 'vec', 'none'], ['unroll', 'vec', 'unroll'], ['vec', 'none', 'none'], ['vec', 'none', 'unroll'], ['vec', 'unroll', 'none'], ['vec', 'unroll', 'unroll']]
+tunetime=0:08:16.784447
